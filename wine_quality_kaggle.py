@@ -32,6 +32,13 @@ import scikitplot as skplt
 this_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(this_dir, 'winequality-red.csv')
 quality_data = pd.read_csv(data_path)
+
+
+'''some data exploration'''
+
+
+profile = ProfileReport(independ.join(depend), title='red wine quality', explorative=True)
+profile.to_file(os.path.join(this_dir, 'profie_report_wine_clean.html'))
 # quality_data.drop_duplicates(inplace=True)
 # duplicates seems to be relevant and may exist due to precess satbility, so I'm leaving them
 
@@ -75,8 +82,8 @@ independ = independ.loc[:, ['alcohol', 'density', 'sulphates',
 '''some data exploration'''
 
 
-# profile = ProfileReport(independ.join(depend), title='red wine quality', explorative=True)
-# profile.to_file(os.path.join(this_dir, 'profie_report_wine_clean.html'))
+profile = ProfileReport(independ.join(depend), title='red wine quality', explorative=True)
+profile.to_file(os.path.join(this_dir, 'profie_report_wine_clean.html'))
 
 
 '''predictive score matrix after data cleaning'''
@@ -260,25 +267,34 @@ scores = {key: value[-1] for key, value in optimizers_data.items()}
 df_scores = pd.DataFrame.from_dict(scores)
 
 
-'''results summary on graphs'''
-
+dtest_flat = np.ravel(dtest)
 plot2 = sns.heatmap(data=df_scores, annot=True)
-plot3 = skplt.metrics.plot_roc(dtest, gb.predict_proba(
-    itest), title='GradientBoostingClassifier ROC')
-plot4 = skplt.metrics.plot_roc(dtest, rf.predict_proba(itest), title='RandomForestClassifier ROC')
-plot5 = skplt.metrics.plot_roc(dtest, mlpc.predict_proba(itest), title='MLPClassifier ROC')
-plot6 = skplt.metrics.plot_roc(dtest, knc.predict_proba(itest), title='KNeighborsClassifier ROC')
-plot7 = skplt.metrics.plot_roc(dtest, logit.predict_proba(itest), title='LogisticRegression ROC')
-plot8 = skplt.metrics.plot_ks_statistic(
-    dtest, gb.predict_proba(itest), title='GradientBoostingClassifier KS')
-plot9 = skplt.metrics.plot_ks_statistic(
-    dtest, rf.predict_proba(itest), title='RandomForestClassifier KS')
-plot10 = skplt.metrics.plot_ks_statistic(dtest, mlpc.predict_proba(itest), title='MLPClassifier KS')
-plot11 = skplt.metrics.plot_ks_statistic(
-    dtest, knc.predict_proba(itest), title='KNeighborsClassifier KS')
-plot12 = skplt.metrics.plot_ks_statistic(
-    dtest, logit.predict_proba(itest), title='LogisticRegression KS')
+fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(nrows=3, ncols=2, constrained_layout=True)
+skplt.metrics.plot_roc(dtest_flat, gb.predict_proba(
+    itest), title='GradientBoostingClassifier ROC', ax=ax1)
+skplt.metrics.plot_roc(dtest_flat, rf.predict_proba(
+    itest), title='RandomForestClassifier ROC', ax=ax2)
+skplt.metrics.plot_roc(dtest_flat, mlpc.predict_proba(
+    itest), title='MLPClassifier ROC', ax=ax3)
+skplt.metrics.plot_roc(dtest_flat, knc.predict_proba(
+    itest), title='KNeighborsClassifier ROC', ax=ax4)
+skplt.metrics.plot_roc(dtest_flat, logit.predict_proba(
+    itest),title='LogisticRegression ROC', ax=ax5)
+fig2, ((ax21, ax22), (ax23, ax24), (ax25, ax26)) = plt.subplots(
+    nrows=3, ncols=2, constrained_layout=True)
+skplt.metrics.plot_ks_statistic(dtest_flat, gb.predict_proba(
+    itest), title='GradientBoostingClassifier KS', ax=ax21)
+skplt.metrics.plot_ks_statistic(dtest_flat, rf.predict_proba(
+    itest), title='RandomForestClassifier KS', ax=ax22)
+skplt.metrics.plot_ks_statistic(dtest_flat, mlpc.predict_proba(itest),
+                                title='MLPClassifier KS', ax=ax23)
+skplt.metrics.plot_ks_statistic(dtest_flat, knc.predict_proba(itest),
+                                title='KNeighborsClassifier KS', ax=ax24)
+skplt.metrics.plot_ks_statistic(dtest_flat, logit.predict_proba(itest),
+                                title='LogisticRegression KS', ax=ax25)
 
+ax6.set_visible(False)
+ax26.set_visible(False)
 plt.show()
 
 
