@@ -12,7 +12,8 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, balanced_accuracy_score, f1_score
+from sklearn.metrics import (f1_score, roc_auc_score, precision_recall_curve, auc, roc_curve,
+                             balanced_accuracy_score, recall_score, precision_score)
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from scipy.stats import uniform, randint, zscore, median_abs_deviation
 import scikitplot as skplt
@@ -32,13 +33,6 @@ import scikitplot as skplt
 this_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(this_dir, 'winequality-red.csv')
 quality_data = pd.read_csv(data_path)
-
-
-'''some data exploration'''
-
-
-profile = ProfileReport(independ.join(depend), title='red wine quality', explorative=True)
-profile.to_file(os.path.join(this_dir, 'profie_report_wine_clean.html'))
 # quality_data.drop_duplicates(inplace=True)
 # duplicates seems to be relevant and may exist due to precess satbility, so I'm leaving them
 
@@ -48,8 +42,9 @@ profile.to_file(os.path.join(this_dir, 'profie_report_wine_clean.html'))
 
 matrix_pp = pps.matrix(quality_data)[['x', 'y', 'ppscore']].pivot(
     columns='x', index='y', values='ppscore')
-plot1 = sns.heatmap(matrix_pp, annot=True)
-plt.show()
+fig0, ax0 = plt.subplots()
+plot0 = sns.heatmap(matrix_pp, annot=True, ax=ax0)
+# plt.show()
 # most of features have no predictive power, so let's drop them :)
 
 
@@ -62,15 +57,15 @@ def robust_zscore(d: 'DataFrame'):
     mad = median_abs_deviation(a, axis=0)
     z = (a - median) / mad
     return z
-# robust z-score is distribution agnostic but is more sensitive
+# robust z-score is distribution agnostic but is far more sensitive
 # 'normal' z-score works fine only for normally distributed variable
 
 
 depend = pd.DataFrame([0 if q < 6 else 1 for q in quality_data['quality']],
                       columns=['quality_class'])
 independ = quality_data.drop('quality', axis=1)
-# print(len(depend), len(depend[(np.abs(zscore(independ) < 3).all(axis=1))]),
-#      len(depend[(np.abs(robust_zscore(independ) < 8).all(axis=1))])) # compare scoring sensitivity
+print(len(depend), len(depend[(np.abs(zscore(independ) < 3).all(axis=1))]),
+      len(depend[(np.abs(robust_zscore(independ) < 8).all(axis=1))]))  # compare scoring sensitivity
 
 depend = depend[(np.abs(robust_zscore(independ) < 8).all(axis=1))]  # outliers out by robust_zscore
 independ = independ[(np.abs(robust_zscore(independ) < 8).all(axis=1))
@@ -91,8 +86,9 @@ profile.to_file(os.path.join(this_dir, 'profie_report_wine_clean.html'))
 
 matrix_pp = pps.matrix(depend.join(independ))[['x', 'y', 'ppscore']].pivot(
     columns='x', index='y', values='ppscore')
-plot1 = sns.heatmap(matrix_pp, annot=True)
-plt.show()
+fig1, ax1 = plt.subplots()
+plot1 = sns.heatmap(matrix_pp, annot=True, ax=ax1)
+# plt.show()
 # much prettier :)
 
 '''scaling of variables'''
@@ -267,35 +263,47 @@ scores = {key: value[-1] for key, value in optimizers_data.items()}
 df_scores = pd.DataFrame.from_dict(scores)
 
 
+'''results summary on graphs'''
+
+
 dtest_flat = np.ravel(dtest)
-plot2 = sns.heatmap(data=df_scores, annot=True)
-fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(nrows=3, ncols=2, constrained_layout=True)
+fig2, ax2 = plt.subplots()
+plot2 = sns.heatmap(data=df_scores, annot=True, ax=ax2)
+fig3, ((ax31, ax32), (ax33, ax34), (ax35, ax36)) = plt.subplots(
+    nrows=3, ncols=2, constrained_layout=True)
 skplt.metrics.plot_roc(dtest_flat, gb.predict_proba(
-    itest), title='GradientBoostingClassifier ROC', ax=ax1)
+    itest), title='GradientBoostingClassifier ROC', ax=ax31)
 skplt.metrics.plot_roc(dtest_flat, rf.predict_proba(
-    itest), title='RandomForestClassifier ROC', ax=ax2)
-skplt.metrics.plot_roc(dtest_flat, mlpc.predict_proba(
-    itest), title='MLPClassifier ROC', ax=ax3)
+    itest), title='RandomForestClassifier ROC', ax=ax32)
+skplt.metrics.plot_roc(dtest_flat, mlpc.predict_proba(itest), title='MLPClassifier ROC', ax=ax33)
 skplt.metrics.plot_roc(dtest_flat, knc.predict_proba(
-    itest), title='KNeighborsClassifier ROC', ax=ax4)
-skplt.metrics.plot_roc(dtest_flat, logit.predict_proba(
-    itest),title='LogisticRegression ROC', ax=ax5)
-fig2, ((ax21, ax22), (ax23, ax24), (ax25, ax26)) = plt.subplots(
+    itest), title='KNeighborsClassifier ROC', ax=ax34)
+skplt.metrics.plot_roc(dtest_flat, logit.predict_proba(itest),
+                       title='LogisticRegression ROC', ax=ax35)
+fig4, ((ax41, ax42), (ax43, ax44), (ax45, ax46)) = plt.subplots(
     nrows=3, ncols=2, constrained_layout=True)
 skplt.metrics.plot_ks_statistic(dtest_flat, gb.predict_proba(
-    itest), title='GradientBoostingClassifier KS', ax=ax21)
+    itest), title='GradientBoostingClassifier KS', ax=ax41)
 skplt.metrics.plot_ks_statistic(dtest_flat, rf.predict_proba(
-    itest), title='RandomForestClassifier KS', ax=ax22)
+    itest), title='RandomForestClassifier KS', ax=ax42)
 skplt.metrics.plot_ks_statistic(dtest_flat, mlpc.predict_proba(itest),
-                                title='MLPClassifier KS', ax=ax23)
+                                title='MLPClassifier KS', ax=ax43)
 skplt.metrics.plot_ks_statistic(dtest_flat, knc.predict_proba(itest),
-                                title='KNeighborsClassifier KS', ax=ax24)
+                                title='KNeighborsClassifier KS', ax=ax44)
 skplt.metrics.plot_ks_statistic(dtest_flat, logit.predict_proba(itest),
-                                title='LogisticRegression KS', ax=ax25)
+                                title='LogisticRegression KS', ax=ax45)
 
-ax6.set_visible(False)
-ax26.set_visible(False)
+ax36.set_visible(False)
+ax46.set_visible(False)
 plt.show()
+
+
+'''model axplanation'''
+
+
+explainer = shap.KernelExplainer(knc.predict, shap.sample(itest, 200))
+shap_values = explainer.shap_values(itest.iloc[:200, :])
+shap.summary_plot(shap_values, itest.iloc[:200, :], plot_type='layered_violin')
 
 
 print(f'\
