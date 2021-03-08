@@ -1,3 +1,6 @@
+'''Tekne Consulting blogpost --- teknecons.com'''
+
+
 from scipy import stats
 from matplotlib import pyplot as plt
 import seaborn as sns
